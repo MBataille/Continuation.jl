@@ -1,5 +1,7 @@
-using Core
+using DrWatson
 using DelimitedFiles, Formatting
+
+export read_state
 
 #============== Parsing functions =============#
 
@@ -14,26 +16,16 @@ function clean_txt_file(filename)
     end
 end
 
-# converts float to string replacing the 
-# decimal point with a given separator
-function float_to_str(fl::Float64; sep="_")
-    s = format(fl)
-    replace(s, "." => sep)
-end
-
-function params_to_filename(p::Params)
-    folder = format("data/N{}_dx{}/", p.N, float_to_str(p.L / (p.N-1)))
-    file = format("epsilon{}.values", float_to_str(p.ϵ, sep="."))
-    folder * file
+function she_p_to_name(gp::GenericParams)
+    _p = @strdict N=gp.N dx=gp.Δx eps=gp.p[:ϵ]
+    datadir("sims", "she", savename(_p, "values", digits=4))
 end
 
 # loads state for given params
-function read_state(p::Params)
-    filename = params_to_filename(p)
+function read_state(gp::GenericParams)
+    filename = she_p_to_name(gp)
     clean_txt_file(filename)
     u = readdlm(filename, ' ', Float64, '\n')
 
-    S = State(p, u) 
+    State(gp=gp, u=u) 
 end
-
-export read_state

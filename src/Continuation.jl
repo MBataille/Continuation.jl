@@ -1,9 +1,5 @@
 module Continuation
-
-include("Core.jl") # core functionnalities
+include("Definitions.jl")
 include("She.jl") # swift-hohenberg
 include("SheParse.jl")  # parse swift-hohenberg data
-
-# Write your package code here.
-
 end

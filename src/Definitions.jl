@@ -1,16 +1,21 @@
 using FFTW
+# using Parameters
 FFTW.set_provider!("mkl")
+
+
+#============== Exports =============#
+export Params, Flags, State, getXs
+export ∂ₓ, ∂ₓₓ, ∂ₓₓₓₓ, ∇², ∇⁴
 
 #================ Classes ===============#
 
 #  PARAMS contain all relevant parameters
 # of the state. They will later be stored
 # in State.
-struct Params
+struct GenericParams
     N::Int
-    L::Float64  
-    ϵ::Float64
-    ν::Float64
+    Δx::Float64
+    p::Dict
 end
 
 #  FLAGS contain all relevant flags of the
@@ -22,21 +27,25 @@ end
 
 #  STATE is the main class, it will contain
 # the solution u, and relevant parameters
-struct State
-    p::Params
+# in the form of a dictionary, it MUST contain
+# N and Δx
+@with_kw struct State
+    gp::GenericParams
     u::Matrix
+    flags::Flags = Flags(true)
 end
 
 #============== Base functions =============#
 
 #  Base function that computes matrix derivatives
 # along x or y, for arbitrary order.
-function deriv_mat(A::Matrix{Float64}, L::Float64; axis::Char='x', order::Int64=1)
+function deriv_mat(A::Matrix, Δx::Float64; axis::Char='x', order::Int64=1)
     
     #factor = (2π * im / L);
     N = size(A)[1];
     freqs = fftfreq(N) * N;
-    
+    L = (N-1) * Δx;
+
     if axis == 'y'
         dim = 1;
         k = [freqs[i] for i in 1:N, j in 1:N];
@@ -49,19 +58,21 @@ function deriv_mat(A::Matrix{Float64}, L::Float64; axis::Char='x', order::Int64=
     real.(ifft( (2π / L * im) ^ order * k .^ order .* fft(A) ))
 end
 
+function getXs(gp::GenericParams)
+    (0:gp.N-1) * gp.Δx
+end
+
+function getXs(S::State)
+    getXs(S.gp)
+end
+
 ### Definitions to simplify the code
 
-∂ₓ(S::State; axis='x') = deriv_mat(S.u, S.p.L, axis=axis, order=1);
-∂ₓₓ(S::State; axis='x') = deriv_mat(S.u, S.p.L, axis=axis, order=2);
-∂ₓₓₓₓ(S::State; axis='x') = deriv_mat(S.u, S.p.L, axis=axis, order=4);
+∂ₓ(S::State; axis='x') = deriv_mat(S.u, S.gp.Δx, axis=axis, order=1);
+∂ₓₓ(S::State; axis='x') = deriv_mat(S.u, S.gp.Δx, axis=axis, order=2);
+∂ₓₓₓₓ(S::State; axis='x') = deriv_mat(S.u, S.gp.Δx, axis=axis, order=4);
 
 ∇²(S::State) = ∂ₓₓ(S) + ∂ₓₓ(S, axis='y');
 ∇⁴(S::State) = ∂ₓₓₓₓ(S) + ∂ₓₓₓₓ(S, axis='y');
-
-
-#============== Exports =============#
-export Params, Flags, State
-export ∂ₓ, ∂ₓₓ, ∂ₓₓₓₓ, ∇², ∇⁴
-
 
 
