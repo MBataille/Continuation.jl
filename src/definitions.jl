@@ -1,10 +1,10 @@
 using FFTW
-# using Parameters
+using Parameters
 FFTW.set_provider!("mkl")
 
 
 #============== Exports =============#
-export Params, Flags, State, getXs
+export GenericParams, Params, Flags, State, getXs
 export ∂ₓ, ∂ₓₓ, ∂ₓₓₓₓ, ∇², ∇⁴
 
 #================ Classes ===============#
@@ -21,8 +21,10 @@ end
 #  FLAGS contain all relevant flags of the
 # state, i.e. wether to compute derivatives
 # using FFT or FD, etc.
-struct Flags
-    useFFT::Bool
+@with_kw struct Flags
+    useFFT::Bool = true
+    sym::Bool = false
+    switch::Bool = false
 end
 
 #  STATE is the main class, it will contain
@@ -32,7 +34,7 @@ end
 @with_kw struct State
     gp::GenericParams
     u::Matrix
-    flags::Flags = Flags(true)
+    flags::Flags = Flags()
 end
 
 #============== Base functions =============#

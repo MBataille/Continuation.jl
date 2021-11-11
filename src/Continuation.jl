@@ -1,5 +1,7 @@
 module Continuation
-include("Definitions.jl")
-include("She.jl") # swift-hohenberg
-include("SheParse.jl")  # parse swift-hohenberg data
+include("definitions.jl")
+include("she.jl") # swift-hohenberg
+include("she_parse.jl")  # parse swift-hohenberg data
+include("spiral.jl") # Spiral chimeras
+include("spiral_parse.jl")
 end
