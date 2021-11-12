@@ -16,6 +16,7 @@ Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
 Trapz = "592b5752-818d-11e9-1e9a-2b8ca4a44cd1"
 
 [compat]
+Trapz = "2"
 julia = "1.6.3"
 
 [extras]
