@@ -53,8 +53,6 @@ maximum(diff)
 
 ps = PardisoSolver()
 
-set_iparm!(ps, )
-
 val, vec = eigen(jac)
 
 using BenchmarkTools
