@@ -1,11 +1,11 @@
-using FFTW
-using Parameters
+using FFTW, Parameters, DiffEqOperators, Setfield, Parameters
 FFTW.set_provider!("mkl")
+using LinearAlgebra, Plots, SparseArrays
 
 
 #============== Exports =============#
 export GenericParams, Params, Flags, State, getXs
-export ∂ₓ, ∂ₓₓ, ∂ₓₓₓₓ, ∇², ∇⁴
+export ∂ₓ, ∂ₓₓ, ∂ₓₓₓₓ, ∇², ∇⁴, LaplaceOperator
 
 #================ Classes ===============#
 
@@ -14,7 +14,7 @@ export ∂ₓ, ∂ₓₓ, ∂ₓₓₓₓ, ∇², ∇⁴
 # in State.
 struct GenericParams
     N::Int
-    Δx::Float64
+    Δx::Real
     p::Dict
 end
 
@@ -39,25 +39,42 @@ end
 
 #============== Base functions =============#
 
+function LaplaceOperator(N, Δx)
+    D2x = CenteredDifference(2, 2, Δx, N)
+    Qx = PeriodicBC(Float64)
+    sp = sparse(D2x * Qx)[1]
+    kron(sparse(I,  N, N), sp) + kron(sp, sparse(I, N, N))
+end
 #  Base function that computes matrix derivatives
 # along x or y, for arbitrary order.
-function deriv_mat(A::Matrix, Δx::Float64; axis::Char='x', order::Int64=1)
+function deriv_mat(A::Matrix, Δx::Real; axis::Char='x', order::Int=1, useFFT::Bool=true)
     
-    #factor = (2π * im / L);
-    N = size(A)[1];
-    freqs = fftfreq(N) * N;
-    L = (N-1) * Δx;
+    N = size(A)[1];    
+    if useFFT
+        freqs = fftfreq(N) * N;
+        L = (N-1) * Δx;
 
-    if axis == 'y'
-        dim = 1;
-        k = [freqs[i] for i in 1:N, j in 1:N];
-    elseif axis == 'x'
-        dim = 2;
-        k = [freqs[j] for i in 1:N, j in 1:N]; 
+        if axis == 'y'
+            dim = 1;
+            k = [freqs[i] for i in 1:N, j in 1:N];
+        elseif axis == 'x'
+            dim = 2;
+            k = [freqs[j] for i in 1:N, j in 1:N]; 
+        else
+            println("Axis not understood");
+        end
+        real.(ifft( (2π / L * im) ^ order * k .^ order .* fft(A) ))
     else
-        println("Axis not understood");
+        B = similar(A) # assuming order = 2
+        for i in 1:N, j in 1:N
+            j₋ = if j > 1 j - 1 else N end
+            j₊ = if j < N j + 1 else 1 end
+            i₊ = if i < N i + 1 else 1 end
+            i₋ = if i > 1 i - 1 else N end
+            B[j, i] = A[j₋, i] + A[j₊, i] + A[j, i₋] + A[j, i₊] - 4 * A[j, i] 
+        end
+        B
     end
-    real.(ifft( (2π / L * im) ^ order * k .^ order .* fft(A) ))
 end
 
 function getXs(gp::GenericParams)
@@ -70,11 +87,17 @@ end
 
 ### Definitions to simplify the code
 
-∂ₓ(S::State; axis='x') = deriv_mat(S.u, S.gp.Δx, axis=axis, order=1);
-∂ₓₓ(S::State; axis='x') = deriv_mat(S.u, S.gp.Δx, axis=axis, order=2);
-∂ₓₓₓₓ(S::State; axis='x') = deriv_mat(S.u, S.gp.Δx, axis=axis, order=4);
+∂ₓ(S::State; axis='x') = deriv_mat(S.u, S.gp.Δx, axis=axis, order=1, useFFT=S.flags.useFFT);
+∂ₓₓ(S::State; axis='x') = deriv_mat(S.u, S.gp.Δx, axis=axis, order=2, useFFT=S.flags.useFFT);
+∂ₓₓₓₓ(S::State; axis='x') = deriv_mat(S.u, S.gp.Δx, axis=axis, order=4, useFFT=S.flags.useFFT);
 
 ∇²(S::State) = ∂ₓₓ(S) + ∂ₓₓ(S, axis='y');
 ∇⁴(S::State) = ∂ₓₓₓₓ(S) + ∂ₓₓₓₓ(S, axis='y');
+
+∇²(N::Int, Δx::Real) = LaplaceOperator(N, Δx)
+∇⁴(N::Int, Δx::Real) = ∇²(N, Δx)^2
+
+∇²(V::Array, N::Int, Δx::Real) = ∇²(N, Δx) * V
+∇⁴(V::Array, N::Int, Δx::Real) = ∇⁴(N, Δx) * V
 
 

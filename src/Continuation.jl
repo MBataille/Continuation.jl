@@ -4,4 +4,5 @@ include("she.jl") # swift-hohenberg
 include("she_parse.jl")  # parse swift-hohenberg data
 include("spiral.jl") # Spiral chimeras
 include("spiral_parse.jl")
+include("newton.jl")
 end
