@@ -45,6 +45,13 @@ function LaplaceOperator(N, Δx)
     sp = sparse(D2x * Qx)[1]
     kron(sparse(I,  N, N), sp) + kron(sp, sparse(I, N, N))
 end
+
+function LaplaceOperator1D(N, Δx)
+    D2x = CenteredDifference(2, 2, Δx, N)
+    Qx = Dirichlet0BC(typeof(Δx))
+    sparse(D2x * Qx)[1]
+end
+
 #  Base function that computes matrix derivatives
 # along x or y, for arbitrary order.
 function deriv_mat(A::Matrix, Δx::Real; axis::Char='x', order::Int=1, useFFT::Bool=true)
@@ -94,10 +101,17 @@ end
 ∇²(S::State) = ∂ₓₓ(S) + ∂ₓₓ(S, axis='y');
 ∇⁴(S::State) = ∂ₓₓₓₓ(S) + ∂ₓₓₓₓ(S, axis='y');
 
-∇²(N::Int, Δx::Real) = LaplaceOperator(N, Δx)
-∇⁴(N::Int, Δx::Real) = ∇²(N, Δx)^2
+function ∇²(N::Int, Δx::Real; dim::Int=2)
+    if dim == 2
+        LaplaceOperator(N, Δx)
+    elseif dim == 1
+        LaplaceOperator1D(N, Δx)
+    end
+end
 
-∇²(V::Array, N::Int, Δx::Real) = ∇²(N, Δx) * V
-∇⁴(V::Array, N::Int, Δx::Real) = ∇⁴(N, Δx) * V
+∇⁴(N::Int, Δx::Real; dim::Int=2) = ∇²(N, Δx; dim)^2
+
+∇²(V::Array, N::Int, Δx::Real; dim::Int=2) = ∇²(N, Δx; dim) * V
+∇⁴(V::Array, N::Int, Δx::Real; dim::Int=2) = ∇⁴(N, Δx; dim) * V
 
 

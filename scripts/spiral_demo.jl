@@ -2,7 +2,7 @@ using DrWatson
 @quickactivate :Continuation # activate package +  using
 
 using Plots
-hmap(A::Matrix) = heatmap(1:size(A, 1), 1:size(A, 2), abs.(A) )
+hmap(A::Matrix) = heatmap(1:size(A, 1), 1:size(A, 2), abs.(A); c = :viridis)
 
 N = 128
 σ = 0.4
@@ -14,13 +14,18 @@ params = SpiralParams(N, σ, α, γ)
 S = read_spiral_x(params, sym=true)
 U2 = extend_symmetric(S.u, dim=1)
 
+hmap(U2)
+
 S₁ = State(gp=S.gp, u=U2)
 S₀_conj = conj(S₁)
 g_ft = get_g_ft(S.gp)
 
-V, (g, h, i) = RHS_Spiral(S₁, S₀_conj, g_ft)
+V, V1, V2, V3, (g, h, i) = RHS_Spiral(S₁, S₀_conj, g_ft)
 
-hmap(V)
+hmap(V1)
+hmap(V2)
+hmap(V3)
+hmap(abs.(V))
 
 extend_symmetric([1 2; 3 4; 5 6; 7 8], dim=2)
 

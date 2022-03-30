@@ -6,8 +6,8 @@ L₁(V::Array) = sum(abs.(V)) / length(V)
 L₂(V::Array, xs::Array) = trapz(xs, V.^2) 
 
 function newton(V₀::Array, rhs::Function, jac::Function, p::Dict, N::Int, Δx::Real)
-    max_iter = 20
-    tol = 1e-4
+    max_iter = 100
+    tol = 1e-8
 
     V = copy(V₀)
 

@@ -1,12 +1,32 @@
 using DrWatson
 @quickactivate :Continuation
-using Plots
-using Setfield
 
-N = 256
-Δx = 0.4
+using Revise
+using SparseArrays, LinearAlgebra, DiffEqOperators, Setfield, Parameters
+using BifurcationKit
+using Plots
+const BK = BifurcationKit
+
+N = 1000
+Δx = 0.1
 p = @dict ϵ=1.16 ν=1
 params = GenericParams(N, Δx, p)
+
+
+# initial condition
+x = collect((1:N) * Δx); 
+x0 = x[500]
+σ = 1
+sol0 = @. cos(x) * exp(-((x - x0) / (2 * σ))^2)
+
+plot(x, sol0)
+# ok
+
+# newton!
+p = @set p[:ϵ] -= 0.1
+X2 = newton(X2, RHS_SHE1D, Jacobian_SHE1D, p, N, Δx)
+plot(x, X2)
+
 
 S = read_state(params)
 
